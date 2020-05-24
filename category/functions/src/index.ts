@@ -46,27 +46,27 @@ app.post('/', (request: any, response: any) => {
                 id: ref.id,
                 ...category
             }
-            response.status(200).send({ message: categoryRs });
+            response.status(200).send(categoryRs);
         })
         .catch(error => {
             response.status(500).send({ message: error });
         });
 });
 
-app.patch('/:categoryId', (request: any, response: any) => {
+app.patch('/', (request: any, response: any) => {
     const category = {
-        id: request.params.categoryId,
+        id: request.body.id,
         name: request.body.name,
         description: request.body.description,
         image: request.body.image
     };
 
-    db.collection("category").add(JSON.parse(JSON.stringify(category)))
+    db.collection("category").doc(request.body.id).set(JSON.parse(JSON.stringify(category)))
         .then(ref => {
             const categoryRs = {
                 ...category
             }
-            response.status(200).send({ message: categoryRs });
+            response.status(200).send(categoryRs);
         })
         .catch(error => {
             response.status(500).send({ message: error });

@@ -52,7 +52,7 @@ app.post('/', (request: any, response: any) => {
         });
 });
 
-app.patch('/:marketId', (request: any, response: any) => {
+app.patch('/', (request: any, response: any) => {
     db.collection("category").doc(request.body.categoryId).get()
         .then(doc => {
             const category = {
@@ -60,7 +60,7 @@ app.patch('/:marketId', (request: any, response: any) => {
                 name: doc.data()?.name
             };
             const market = parseToEntity(request, category, 'U');
-            db.collection('market').doc(request.params.marketId).set(JSON.parse(JSON.stringify(market)), { merge: true })
+            db.collection('market').doc(request.body.id).set(JSON.parse(JSON.stringify(market)), { merge: true })
                 .then(ref => {
                     response.status(200).send({ message: 'Update Successull' });
                 }).catch(error => {
@@ -100,7 +100,7 @@ const parseToEntity = ((request: any, category: any, type: string) => {
     }
 
     const marketEntity = {
-        id: request.params.marketId,
+        id: request.body.id,
         name: request.body.name,
         description: request.body.description,
         contact: {
@@ -123,7 +123,11 @@ const parseToEntity = ((request: any, category: any, type: string) => {
             longitude: request.body.ubigeo.longitude,
             address: request.body.ubigeo.address
         },
-        stars: stars
+        stars: stars,
+        additionalData: {
+            information: request.body.additionalData.information,
+            urlVideo: request.body.additionalData.video,
+        }
     };
     return marketEntity;
 });
