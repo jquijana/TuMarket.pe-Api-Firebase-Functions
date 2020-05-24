@@ -3,4 +3,12 @@ export default class CategoryRs {
   name?: string;
   description?: string;
   image?: string;
+  items?: CategoryItemRs[]
+}
+
+export class CategoryItemRs {
+  id?: string;
+  name?: string;
+  description?: string;
+  image?: string;
 }

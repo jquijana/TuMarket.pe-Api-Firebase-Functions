@@ -15,6 +15,7 @@ app.use(cors({ origin: true }));
 app.get('/', (request, response) => {
     db.collection("category").get()
         .then(snapshot => {
+        console.log(snapshot);
         const arrayJson = snapshot.docs.map((doc) => {
             const data = doc.data();
             const categoryRs = new CategoryRs_1.default();
@@ -22,6 +23,16 @@ app.get('/', (request, response) => {
             categoryRs.name = data.name;
             categoryRs.description = data.description;
             categoryRs.image = data.image;
+            if (data.items) {
+                categoryRs.items = data.items.map((item) => {
+                    const categoryItemRs = new CategoryRs_1.CategoryItemRs();
+                    categoryItemRs.id = item.id;
+                    categoryItemRs.name = item.name;
+                    categoryItemRs.description = item.description;
+                    categoryItemRs.image = item.image;
+                    return categoryItemRs;
+                });
+            }
             return categoryRs;
         });
         response.status(200).send(arrayJson);
@@ -31,10 +42,22 @@ app.get('/', (request, response) => {
     });
 });
 app.post('/', (request, response) => {
+    let items;
+    if (request.body.items) {
+        items = request.body.items.map((item) => {
+            return {
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                image: item.image,
+            };
+        });
+    }
     const category = {
         name: request.body.name,
         description: request.body.description,
-        image: request.body.image
+        image: request.body.image,
+        items: items
     };
     db.collection("category").add(JSON.parse(JSON.stringify(category)))
         .then(ref => {
@@ -46,16 +69,27 @@ app.post('/', (request, response) => {
     });
 });
 app.patch('/', (request, response) => {
+    let items;
+    if (request.body.items) {
+        items = request.body.items.map((item) => {
+            return {
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                image: item.image,
+            };
+        });
+    }
     const category = {
         id: request.body.id,
         name: request.body.name,
         description: request.body.description,
-        image: request.body.image
+        image: request.body.image,
+        items: items
     };
     db.collection("category").doc(request.body.id).set(JSON.parse(JSON.stringify(category)))
         .then(ref => {
-        const categoryRs = Object.assign({}, category);
-        response.status(200).send(categoryRs);
+        response.status(200).send(category);
     })
         .catch(error => {
         response.status(500).send({ message: error });
