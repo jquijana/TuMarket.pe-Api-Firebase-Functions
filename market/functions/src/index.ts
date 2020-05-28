@@ -2,8 +2,8 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import * as express from "express";
 import * as cors from "cors";
-import CategoryRs from "./dto/response/CategoryRs";
-import { MarketRs, MarketImageRs, UbigeoRs, ContactRs, QualificationRs } from "./dto/response/MarketRs";
+import CategoryRs, { ItemRs } from "./dto/response/CategoryRs";
+import { MarketRs, MarketImageRs, UbigeoRs, ContactRs, QualificationRs, AdditionalData } from "./dto/response/MarketRs";
 import { calculateDistance, round } from "./util/functions";
 
 if (!admin.apps.length) {
@@ -15,10 +15,20 @@ app.use(cors({ origin: true }));
 
 //============================== MARKETS ==============================\\
 app.get('/', (request: any, response: any) => {
-    db.collection("market").where('category.id', '==', request.query.category).get()
+    if (!request.query.category) {
+        response.status(400).send({ message: 'category is required' });
+    }
+
+    let marketRef = db.collection('market').where('category.id', '==', request.query.category);
+    if (request.query.item) {
+        marketRef = marketRef.where('category.item', '==', request.query.item);
+    }
+
+    marketRef.get()
         .then(snapshot => {
+            console.log(snapshot.docs);
             const arrayJson = snapshot.docs.map((doc) => {
-                const marketRs = parseToRs(doc, request);
+                const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
                 return marketRs;
             })
             response.status(200).send(arrayJson);
@@ -29,11 +39,26 @@ app.get('/', (request: any, response: any) => {
 });
 
 app.post('/', (request: any, response: any) => {
-    db.collection("category").doc(request.body.categoryId).get()
+    console.log("request", request);
+    if (!request.body.category.id) {
+        response.status(400).send({ message: 'category is required' });
+    }
+
+    if (!request.body.category.item) {
+        response.status(400).send({ message: 'item is required' });
+    }
+
+    db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
+            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item);
+            if (!item) response.status(400).send({ message: 'Item Not Exists' });
             const category = {
                 id: doc.id,
-                name: doc.data()?.name
+                name: doc.data()?.name,
+                item: {
+                    id: item.id,
+                    name: item.name
+                }
             };
             const market = parseToEntity(request, category, 'C');
             db.collection('market').add(JSON.parse(JSON.stringify(market)))
@@ -53,11 +78,26 @@ app.post('/', (request: any, response: any) => {
 });
 
 app.patch('/', (request: any, response: any) => {
-    db.collection("category").doc(request.body.categoryId).get()
+    if (!request.body.category.id) {
+        response.status(400).send({ message: 'category is required' });
+    }
+
+    if (!request.body.category.item) {
+        response.status(400).send({ message: 'item is required' });
+    }
+
+    db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
+            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item);
+            if (!item) response.status(400).send({ message: 'Item Not Exists' });
+
             const category = {
                 id: doc.id,
-                name: doc.data()?.name
+                name: doc.data()?.name,
+                item: {
+                    id: item.id,
+                    name: item.name
+                }
             };
             const market = parseToEntity(request, category, 'U');
             db.collection('market').doc(request.body.id).set(JSON.parse(JSON.stringify(market)), { merge: true })
@@ -99,16 +139,38 @@ const parseToEntity = ((request: any, category: any, type: string) => {
             break;
     }
 
-    const marketEntity = {
-        id: request.body.id,
-        name: request.body.name,
-        description: request.body.description,
-        contact: {
+    let ubigeo;
+    if (request.body.ubigeo) {
+        ubigeo = {
+            latitude: request.body.ubigeo.latitude,
+            longitude: request.body.ubigeo.longitude,
+            address: request.body.ubigeo.address
+        }
+    }
+
+    let additionalData;
+    if (request.body.additionalData) {
+        additionalData = {
+            information: request.body.additionalData.information,
+            urlVideo: request.body.additionalData.video
+        }
+    }
+
+    let contact;
+    if (!request.body.contact) {
+        contact = {
             administrator: request.body.contact.administrator,
             cellphone: request.body.contact.cellphone,
             email: request.body.contact.email,
             web: request.body.contact.web
-        },
+        }
+    }
+
+    const marketEntity = {
+        id: request.body.id,
+        name: request.body.name,
+        description: request.body.description,
+        contact: contact,
         category: category,
         images: request.body.images.map((image: any) => {
             return {
@@ -118,22 +180,15 @@ const parseToEntity = ((request: any, category: any, type: string) => {
                 url: image.url
             }
         }),
-        ubigeo: {
-            latitude: request.body.ubigeo.latitude,
-            longitude: request.body.ubigeo.longitude,
-            address: request.body.ubigeo.address
-        },
+        ubigeo: ubigeo,
         stars: stars,
-        additionalData: {
-            information: request.body.additionalData.information,
-            urlVideo: request.body.additionalData.video,
-        }
+        additionalData: additionalData
     };
     return marketEntity;
 });
 
 
-const parseToRs = ((doc: any, request: any) => {
+const parseToRs = ((doc: any, latitude: number, longitude: number) => {
     const data = doc.data();
     const marketRs = new MarketRs();
     marketRs.id = doc.id;
@@ -143,14 +198,17 @@ const parseToRs = ((doc: any, request: any) => {
     const categoryRs = new CategoryRs();
     categoryRs.id = data.category.id;
     categoryRs.name = data.category.name;
+    categoryRs.item = new ItemRs(data.category.item.id, data.category.item.name);
     marketRs.category = categoryRs;
 
-    const ubigeoRs = new UbigeoRs();
-    ubigeoRs.latitude = data.ubigeo.latitude;
-    ubigeoRs.longitude = data.ubigeo.longitude;
-    ubigeoRs.address = data.ubigeo.address;
-    ubigeoRs.distance = calculateDistance(+request.query.latitude, +request.query.longitude, data.ubigeo.latitude, data.ubigeo.longitude);
-    marketRs.ubigeo = ubigeoRs;
+    if (data.contact) {
+        const ubigeoRs = new UbigeoRs();
+        ubigeoRs.latitude = data.ubigeo.latitude;
+        ubigeoRs.longitude = data.ubigeo.longitude;
+        ubigeoRs.address = data.ubigeo.address;
+        ubigeoRs.distance = calculateDistance(+latitude, +longitude, data.ubigeo.latitude, data.ubigeo.longitude);
+        marketRs.ubigeo = ubigeoRs;
+    }
 
     marketRs.images = data.images.map((image: any) => {
         const marketImage = new MarketImageRs();
@@ -185,5 +243,13 @@ const parseToRs = ((doc: any, request: any) => {
         }
         marketRs.qualification = qualificationRs;
     }
+
+    if (data.additionalData) {
+        const additionalData = new AdditionalData();
+        additionalData.information = data.additionalData.information;
+        additionalData.urlVideo = data.additionalData.urlVideo;
+        marketRs.additionalData = additionalData;
+    }
+
     return marketRs;
 });

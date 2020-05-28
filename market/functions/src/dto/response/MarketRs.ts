@@ -9,6 +9,7 @@ export class MarketRs {
   ubigeo?: UbigeoRs;
   contact?: ContactRs;
   qualification?: QualificationRs;
+  additionalData?: AdditionalData;
 }
 
 export class ContactRs {
@@ -36,4 +37,10 @@ export class UbigeoRs {
   longitude?: number;
   distance?: string;
   address?: string;
+}
+
+
+export class AdditionalData {
+  information?: string;
+  urlVideo?: string;
 }
