@@ -21,7 +21,7 @@ app.get('/', (request: any, response: any) => {
 
     let marketRef = db.collection('market').where('category.id', '==', request.query.category);
     if (request.query.item) {
-        marketRef = marketRef.where('category.item', '==', request.query.item);
+        marketRef = marketRef.where('category.item.id', '==', request.query.item);
     }
 
     marketRef.get()
