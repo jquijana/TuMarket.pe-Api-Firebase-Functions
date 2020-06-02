@@ -44,13 +44,13 @@ app.post('/', (request: any, response: any) => {
         response.status(400).send({ message: 'category is required' });
     }
 
-    if (!request.body.category.item) {
+    if (!request.body.category.item.id) {
         response.status(400).send({ message: 'item is required' });
     }
 
     db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
-            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item);
+            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item.id);
             if (!item) response.status(400).send({ message: 'Item Not Exists' });
             const category = {
                 id: doc.id,
@@ -82,13 +82,13 @@ app.patch('/', (request: any, response: any) => {
         response.status(400).send({ message: 'category is required' });
     }
 
-    if (!request.body.category.item) {
+    if (!request.body.category.item.id) {
         response.status(400).send({ message: 'item is required' });
     }
 
     db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
-            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item);
+            const item = doc.data()?.items.find((x: any) => x.id === request.body.category.item.id);
             if (!item) response.status(400).send({ message: 'Item Not Exists' });
 
             const category = {
@@ -201,7 +201,7 @@ const parseToRs = ((doc: any, latitude: number, longitude: number) => {
     categoryRs.item = new ItemRs(data.category.item.id, data.category.item.name);
     marketRs.category = categoryRs;
 
-    if (data.contact) {
+    if (data.ubigeo) {
         const ubigeoRs = new UbigeoRs();
         ubigeoRs.latitude = data.ubigeo.latitude;
         ubigeoRs.longitude = data.ubigeo.longitude;

@@ -40,13 +40,13 @@ app.post('/', (request, response) => {
     if (!request.body.category.id) {
         response.status(400).send({ message: 'category is required' });
     }
-    if (!request.body.category.item) {
+    if (!request.body.category.item.id) {
         response.status(400).send({ message: 'item is required' });
     }
     db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
         var _a, _b;
-        const item = (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.items.find((x) => x.id === request.body.category.item);
+        const item = (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.items.find((x) => x.id === request.body.category.item.id);
         if (!item)
             response.status(400).send({ message: 'Item Not Exists' });
         const category = {
@@ -74,13 +74,13 @@ app.patch('/', (request, response) => {
     if (!request.body.category.id) {
         response.status(400).send({ message: 'category is required' });
     }
-    if (!request.body.category.item) {
+    if (!request.body.category.item.id) {
         response.status(400).send({ message: 'item is required' });
     }
     db.collection("category").doc(request.body.category.id).get()
         .then(doc => {
         var _a, _b;
-        const item = (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.items.find((x) => x.id === request.body.category.item);
+        const item = (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.items.find((x) => x.id === request.body.category.item.id);
         if (!item)
             response.status(400).send({ message: 'Item Not Exists' });
         const category = {
@@ -181,7 +181,7 @@ const parseToRs = ((doc, latitude, longitude) => {
     categoryRs.name = data.category.name;
     categoryRs.item = new CategoryRs_1.ItemRs(data.category.item.id, data.category.item.name);
     marketRs.category = categoryRs;
-    if (data.contact) {
+    if (data.ubigeo) {
         const ubigeoRs = new MarketRs_1.UbigeoRs();
         ubigeoRs.latitude = data.ubigeo.latitude;
         ubigeoRs.longitude = data.ubigeo.longitude;
