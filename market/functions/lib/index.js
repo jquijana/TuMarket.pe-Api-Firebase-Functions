@@ -18,7 +18,7 @@ app.get('/', (request, response) => {
     if (!request.query.category) {
         response.status(400).send({ message: 'category is required' });
     }
-    let marketRef = db.collection('market').where('category.id', '==', request.query.category);
+    let marketRef = db.collection('market').where('isActive', '==', true).where('category.id', '==', request.query.category);
     if (request.query.item) {
         marketRef = marketRef.where('category.item.id', '==', request.query.item);
     }
@@ -36,14 +36,24 @@ app.get('/', (request, response) => {
     });
 });
 app.get('/nearest', (request, response) => {
-    db.collection('market').get()
+    let marketRef = db.collection('market').where('isActive', '==', true);
+    if (request.query.category) {
+        marketRef = marketRef.where('category.id', '==', request.query.category);
+    }
+    marketRef.get()
         .then(snapshot => {
         const arrayJson = snapshot.docs.map((doc) => {
             const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
             return marketRs;
         });
         const data = arrayJson
-            .filter(x => x.ubigeo && x.ubigeo.distance)
+            .filter(x => {
+            var _a;
+            if (x.ubigeo && x.ubigeo.distance) {
+                return (+((_a = x.ubigeo) === null || _a === void 0 ? void 0 : _a.distance)) > 0 ? true : false;
+            }
+            return false;
+        })
             .sort((a, b) => {
             var _a, _b;
             if (a.ubigeo && a.ubigeo.distance && b.ubigeo && b.ubigeo.distance) {
@@ -54,7 +64,8 @@ app.get('/nearest', (request, response) => {
             else {
                 return -1;
             }
-        });
+        })
+            .slice(0, 9);
         response.status(200).send(data);
     })
         .catch(error => {
@@ -182,6 +193,7 @@ const parseToEntity = ((request, category, type) => {
         description: request.body.description,
         contact: contact,
         category: category,
+        isActive: true,
         images: request.body.images.map((image) => {
             return {
                 id: image.id,

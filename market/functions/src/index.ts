@@ -19,7 +19,7 @@ app.get('/', (request: any, response: any) => {
         response.status(400).send({ message: 'category is required' });
     }
 
-    let marketRef = db.collection('market').where('category.id', '==', request.query.category);
+    let marketRef = db.collection('market').where('isActive', '==', true).where('category.id', '==', request.query.category);
     if (request.query.item) {
         marketRef = marketRef.where('category.item.id', '==', request.query.item);
     }
@@ -39,7 +39,12 @@ app.get('/', (request: any, response: any) => {
 });
 
 app.get('/nearest', (request: any, response: any) => {
-    db.collection('market').get()
+    let marketRef = db.collection('market').where('isActive', '==', true);
+    if (request.query.category) {
+        marketRef = marketRef.where('category.id', '==', request.query.category);
+    }
+
+    marketRef.get()
         .then(snapshot => {
             const arrayJson = snapshot.docs.map((doc) => {
                 const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
@@ -47,7 +52,12 @@ app.get('/nearest', (request: any, response: any) => {
             })
 
             const data = arrayJson
-                .filter(x => x.ubigeo && x.ubigeo.distance)
+                .filter(x => {
+                    if (x.ubigeo && x.ubigeo.distance) {
+                        return (+ x.ubigeo?.distance) > 0 ? true : false;
+                    }
+                    return false;
+                })
                 .sort((a, b) => {
                     if (a.ubigeo && a.ubigeo.distance && b.ubigeo && b.ubigeo.distance) {
                         const val1: number = + a.ubigeo?.distance;
@@ -56,7 +66,8 @@ app.get('/nearest', (request: any, response: any) => {
                     } else {
                         return -1;
                     }
-                });
+                })
+                .slice(0, 9);
 
             response.status(200).send(data);
         })
@@ -200,6 +211,7 @@ const parseToEntity = ((request: any, category: any, type: string) => {
         description: request.body.description,
         contact: contact,
         category: category,
+        isActive: true,
         images: request.body.images.map((image: any) => {
             return {
                 id: image.id,
