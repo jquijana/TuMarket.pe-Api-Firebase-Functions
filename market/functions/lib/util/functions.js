@@ -9,9 +9,9 @@ exports.calculateDistance = ((lat1, long1, lat2, long2) => {
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(exports.rad(lat1)) * Math.cos(exports.rad(lat2)) * Math.sin(dLong / 2) * Math.sin(dLong / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const d = R * c; //distancia en Km
-        return exports.round(d) + " km";
+        return exports.round(d);
     }
-    return "";
+    return 0;
 });
 exports.rad = ((x) => {
     return x * Math.PI / 180;

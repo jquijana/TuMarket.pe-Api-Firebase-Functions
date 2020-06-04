@@ -3,6 +3,7 @@ export default class CategoryRs {
   name?: string;
   description?: string;
   image?: string;
+  order?: number;
   items?: CategoryItemRs[]
 }
 
@@ -11,4 +12,5 @@ export class CategoryItemRs {
   name?: string;
   description?: string;
   image?: string;
+  order?: number;
 }

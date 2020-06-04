@@ -38,6 +38,34 @@ app.get('/', (request: any, response: any) => {
         });
 });
 
+app.get('/nearest', (request: any, response: any) => {
+    db.collection('market').get()
+        .then(snapshot => {
+            const arrayJson = snapshot.docs.map((doc) => {
+                const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+                return marketRs;
+            })
+
+            const data = arrayJson
+                .filter(x => x.ubigeo && x.ubigeo.distance)
+                .sort((a, b) => {
+                    if (a.ubigeo && a.ubigeo.distance && b.ubigeo && b.ubigeo.distance) {
+                        const val1: number = + a.ubigeo?.distance;
+                        const val2: number = + b.ubigeo?.distance;
+                        return val1 - val2;
+                    } else {
+                        return -1;
+                    }
+                });
+
+            response.status(200).send(data);
+        })
+        .catch(error => {
+            response.status(500).send({ message: error });
+        });
+});
+
+
 app.post('/', (request: any, response: any) => {
     console.log("request", request);
     if (!request.body.category.id) {
@@ -157,7 +185,7 @@ const parseToEntity = ((request: any, category: any, type: string) => {
     }
 
     let contact;
-    if (!request.body.contact) {
+    if (request.body.contact) {
         contact = {
             administrator: request.body.contact.administrator,
             cellphone: request.body.contact.cellphone,
@@ -206,7 +234,7 @@ const parseToRs = ((doc: any, latitude: number, longitude: number) => {
         ubigeoRs.latitude = data.ubigeo.latitude;
         ubigeoRs.longitude = data.ubigeo.longitude;
         ubigeoRs.address = data.ubigeo.address;
-        ubigeoRs.distance = calculateDistance(+latitude, +longitude, data.ubigeo.latitude, data.ubigeo.longitude);
+        ubigeoRs.distance = "" + calculateDistance(+latitude, +longitude, data.ubigeo.latitude, data.ubigeo.longitude);
         marketRs.ubigeo = ubigeoRs;
     }
 

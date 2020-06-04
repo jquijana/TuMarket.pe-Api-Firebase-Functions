@@ -6,9 +6,9 @@ export const calculateDistance = ((lat1: number, long1: number, lat2: number, lo
         const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLong / 2) * Math.sin(dLong / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const d = R * c; //distancia en Km
-        return round(d) + " km";
+        return round(d);
     }
-    return "";
+    return 0;
 });
 
 export const rad = ((x: number) => {

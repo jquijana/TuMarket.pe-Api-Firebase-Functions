@@ -25,6 +25,7 @@ app.get('/', (request: any, response: any) => {
                 categoryRs.name = data.name;
                 categoryRs.description = data.description;
                 categoryRs.image = data.image;
+                categoryRs.order = data.order;
 
                 if (data.items) {
                     categoryRs.items = data.items.map((item: any) => {
@@ -38,7 +39,9 @@ app.get('/', (request: any, response: any) => {
                 }
                 return categoryRs;
             });
-            response.status(200).send(arrayJson);
+
+            arrayJson.sort((a, b) => (a.order < b.order ? -1 : 1));
+            response.status(200).send();
         })
         .catch(error => {
             response.status(500).send({ message: error });

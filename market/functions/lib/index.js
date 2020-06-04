@@ -35,6 +35,32 @@ app.get('/', (request, response) => {
         response.status(500).send({ message: error });
     });
 });
+app.get('/nearest', (request, response) => {
+    db.collection('market').get()
+        .then(snapshot => {
+        const arrayJson = snapshot.docs.map((doc) => {
+            const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+            return marketRs;
+        });
+        const data = arrayJson
+            .filter(x => x.ubigeo && x.ubigeo.distance)
+            .sort((a, b) => {
+            var _a, _b;
+            if (a.ubigeo && a.ubigeo.distance && b.ubigeo && b.ubigeo.distance) {
+                const val1 = +((_a = a.ubigeo) === null || _a === void 0 ? void 0 : _a.distance);
+                const val2 = +((_b = b.ubigeo) === null || _b === void 0 ? void 0 : _b.distance);
+                return val1 - val2;
+            }
+            else {
+                return -1;
+            }
+        });
+        response.status(200).send(data);
+    })
+        .catch(error => {
+        response.status(500).send({ message: error });
+    });
+});
 app.post('/', (request, response) => {
     console.log("request", request);
     if (!request.body.category.id) {
@@ -142,7 +168,7 @@ const parseToEntity = ((request, category, type) => {
         };
     }
     let contact;
-    if (!request.body.contact) {
+    if (request.body.contact) {
         contact = {
             administrator: request.body.contact.administrator,
             cellphone: request.body.contact.cellphone,
@@ -186,7 +212,7 @@ const parseToRs = ((doc, latitude, longitude) => {
         ubigeoRs.latitude = data.ubigeo.latitude;
         ubigeoRs.longitude = data.ubigeo.longitude;
         ubigeoRs.address = data.ubigeo.address;
-        ubigeoRs.distance = functions_1.calculateDistance(+latitude, +longitude, data.ubigeo.latitude, data.ubigeo.longitude);
+        ubigeoRs.distance = "" + functions_1.calculateDistance(+latitude, +longitude, data.ubigeo.latitude, data.ubigeo.longitude);
         marketRs.ubigeo = ubigeoRs;
     }
     marketRs.images = data.images.map((image) => {
