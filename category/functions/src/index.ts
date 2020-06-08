@@ -14,9 +14,8 @@ app.use(cors({ origin: true }));
 
 //============================== CATEGORY ==============================\\
 app.get('/', (request: any, response: any) => {
-    db.collection("category").get()
+    db.collection("category").where("isActive", '==', true).orderBy("order", "asc").get()
         .then(snapshot => {
-            console.log(snapshot);
             const arrayJson = snapshot.docs.map((doc) => {
                 const data = doc.data();
 
@@ -39,9 +38,7 @@ app.get('/', (request: any, response: any) => {
                 }
                 return categoryRs;
             });
-
-            arrayJson.sort((a, b) => (a.order < b.order ? -1 : 1));
-            response.status(200).send();
+            response.status(200).send(arrayJson);
         })
         .catch(error => {
             response.status(500).send({ message: error });

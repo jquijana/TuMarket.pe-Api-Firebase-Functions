@@ -24,7 +24,6 @@ app.get('/', (request, response) => {
     }
     marketRef.get()
         .then(snapshot => {
-        console.log(snapshot.docs);
         const arrayJson = snapshot.docs.map((doc) => {
             const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
             return marketRs;
@@ -32,6 +31,17 @@ app.get('/', (request, response) => {
         response.status(200).send(arrayJson);
     })
         .catch(error => {
+        response.status(500).send({ message: error });
+    });
+});
+app.get('/obtenerMarket/:marketId', (request, response) => {
+    db.collection('market').doc(request.params.marketId).get()
+        .then(doc => {
+        const marketRs = parseToRs(doc, 0, 0);
+        response.status(200).send(marketRs);
+    })
+        .catch(error => {
+        console.log("error", error);
         response.status(500).send({ message: error });
     });
 });

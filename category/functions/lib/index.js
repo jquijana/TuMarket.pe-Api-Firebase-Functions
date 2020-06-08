@@ -13,9 +13,8 @@ const app = express();
 app.use(cors({ origin: true }));
 //============================== CATEGORY ==============================\\
 app.get('/', (request, response) => {
-    db.collection("category").get()
+    db.collection("category").where("isActive", '==', true).orderBy("order", "asc").get()
         .then(snapshot => {
-        console.log(snapshot);
         const arrayJson = snapshot.docs.map((doc) => {
             const data = doc.data();
             const categoryRs = new CategoryRs_1.default();
@@ -23,6 +22,7 @@ app.get('/', (request, response) => {
             categoryRs.name = data.name;
             categoryRs.description = data.description;
             categoryRs.image = data.image;
+            categoryRs.order = data.order;
             if (data.items) {
                 categoryRs.items = data.items.map((item) => {
                     const categoryItemRs = new CategoryRs_1.CategoryItemRs();
