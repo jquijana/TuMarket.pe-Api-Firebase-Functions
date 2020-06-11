@@ -46,27 +46,28 @@ app.get('/', (request: any, response: any) => {
 
 app.post('/', (request: any, response: any) => {
     const product = parseToEntity(request);
-    db.collection('product').add(JSON.parse(JSON.stringify(product)))
-        .then(ref => {
-            const productRs = {
-                ...product,
-                id: ref.id
-            }
-            response.status(200).send(productRs);
-        }).catch(error => {
-            response.status(500).send({ message: error });
 
-        });
-});
+    if (!request.body.id) {
+        db.collection('product').add(JSON.parse(JSON.stringify(product)))
+            .then(ref => {
+                const productRs = {
+                    ...product,
+                    id: ref.id
+                }
+                response.status(200).send(productRs);
+            }).catch(error => {
+                response.status(500).send({ message: error });
 
-app.patch('/:productId', (request: any, response: any) => {
-    const product = parseToEntity(request);
-    db.collection('product').doc(request.params.productId).set(JSON.parse(JSON.stringify(product)), { merge: true })
-        .then(ref => {
-            response.status(200).send({ message: 'Update Successull' });
-        }).catch(error => {
-            response.status(500).send({ message: error });
-        })
+            });
+    } else {
+        db.collection('product').doc(request.params.productId).set(JSON.parse(JSON.stringify(product)), { merge: true })
+            .then(ref => {
+                response.status(200).send({ message: 'Update Successull' });
+            }).catch(error => {
+                response.status(500).send({ message: error });
+            })
+    }
+
 });
 
 app.delete('/:productId', (request: any, response: any) => {
@@ -84,7 +85,7 @@ exports.products = functions.https.onRequest(app);
 
 const parseToEntity = ((request: any) => {
     const product = {
-        id: request.params.productId,
+        id: request.body.id,
         code: request.body.code,
         name: request.body.name,
         description: request.body.description,

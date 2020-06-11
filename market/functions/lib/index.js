@@ -45,8 +45,23 @@ app.get('/obtenerMarket/:marketId', (request, response) => {
         response.status(500).send({ message: error });
     });
 });
+app.get('/byUser/:userId', (request, response) => {
+    db.collection('market').where("userId", "==", request.params.userId).get()
+        .then(snapshot => {
+        const arrayJson = snapshot.docs.map((doc) => {
+            const marketRs = parseToRs(doc, 0, 0);
+            return marketRs;
+        });
+        response.status(200).send(arrayJson);
+    })
+        .catch(error => {
+        console.log("error", error);
+        response.status(500).send({ message: error });
+    });
+});
 app.get('/nearest', (request, response) => {
     let marketRef = db.collection('market').where('isActive', '==', true);
+    const limit = request.query.limit ? request.query.limit : 9;
     if (request.query.category) {
         marketRef = marketRef.where('category.id', '==', request.query.category);
     }
@@ -74,8 +89,7 @@ app.get('/nearest', (request, response) => {
             else {
                 return -1;
             }
-        })
-            .slice(0, 9);
+        }).slice(0, limit);
         response.status(200).send(data);
     })
         .catch(error => {
@@ -83,7 +97,6 @@ app.get('/nearest', (request, response) => {
     });
 });
 app.post('/', (request, response) => {
-    console.log("request", request);
     if (!request.body.category.id) {
         response.status(400).send({ message: 'category is required' });
     }
@@ -104,47 +117,25 @@ app.post('/', (request, response) => {
                 name: item.name
             }
         };
-        const market = parseToEntity(request, category, 'C');
-        db.collection('market').add(JSON.parse(JSON.stringify(market)))
-            .then(ref => {
-            const marketRs = Object.assign(Object.assign({}, market), { id: ref.id });
-            response.status(200).send(marketRs);
-        }).catch(error => {
-            response.status(500).send({ message: error });
-        });
-    })
-        .catch(error => {
-        response.status(500).send({ message: error });
-    });
-});
-app.patch('/', (request, response) => {
-    if (!request.body.category.id) {
-        response.status(400).send({ message: 'category is required' });
-    }
-    if (!request.body.category.item.id) {
-        response.status(400).send({ message: 'item is required' });
-    }
-    db.collection("category").doc(request.body.category.id).get()
-        .then(doc => {
-        var _a, _b;
-        const item = (_a = doc.data()) === null || _a === void 0 ? void 0 : _a.items.find((x) => x.id === request.body.category.item.id);
-        if (!item)
-            response.status(400).send({ message: 'Item Not Exists' });
-        const category = {
-            id: doc.id,
-            name: (_b = doc.data()) === null || _b === void 0 ? void 0 : _b.name,
-            item: {
-                id: item.id,
-                name: item.name
-            }
-        };
-        const market = parseToEntity(request, category, 'U');
-        db.collection('market').doc(request.body.id).set(JSON.parse(JSON.stringify(market)), { merge: true })
-            .then(ref => {
-            response.status(200).send({ message: 'Update Successull' });
-        }).catch(error => {
-            response.status(500).send({ message: error });
-        });
+        if (!request.body.id) {
+            const market = parseToEntity(request, category, 'C');
+            db.collection('market').add(JSON.parse(JSON.stringify(market)))
+                .then(ref => {
+                const marketRs = Object.assign(Object.assign({}, market), { id: ref.id });
+                response.status(200).send(marketRs);
+            }).catch(error => {
+                response.status(500).send({ message: error });
+            });
+        }
+        else {
+            const market = parseToEntity(request, category, 'U');
+            db.collection('market').doc(request.body.id).set(JSON.parse(JSON.stringify(market)), { merge: true })
+                .then(ref => {
+                response.status(200).send(market);
+            }).catch(error => {
+                response.status(500).send({ message: error });
+            });
+        }
     })
         .catch(error => {
         response.status(500).send({ message: error });
@@ -198,6 +189,7 @@ const parseToEntity = ((request, category, type) => {
         };
     }
     const marketEntity = {
+        userId: request.body.userId,
         id: request.body.id,
         name: request.body.name,
         description: request.body.description,
@@ -221,6 +213,7 @@ const parseToEntity = ((request, category, type) => {
 const parseToRs = ((doc, latitude, longitude) => {
     const data = doc.data();
     const marketRs = new MarketRs_1.MarketRs();
+    marketRs.userId = doc.userId;
     marketRs.id = doc.id;
     marketRs.name = data.name;
     marketRs.description = data.description;

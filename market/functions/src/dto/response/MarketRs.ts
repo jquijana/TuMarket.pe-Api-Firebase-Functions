@@ -1,6 +1,7 @@
 import CategoryRs from './CategoryRs';
 
 export class MarketRs {
+  userId?: string;
   id?: string;
   category?: CategoryRs;
   name?: string;
