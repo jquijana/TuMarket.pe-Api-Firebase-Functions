@@ -52,9 +52,9 @@ app.post('/', (request, response) => {
         });
     }
     else {
-        db.collection('product').doc(request.params.productId).set(JSON.parse(JSON.stringify(product)), { merge: true })
+        db.collection('product').doc(product.id).set(JSON.parse(JSON.stringify(product)), { merge: true })
             .then(ref => {
-            response.status(200).send({ message: 'Update Successull' });
+            response.status(200).send(product);
         }).catch(error => {
             response.status(500).send({ message: error });
         });

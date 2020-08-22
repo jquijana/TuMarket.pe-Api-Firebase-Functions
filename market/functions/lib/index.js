@@ -14,6 +14,28 @@ const db = admin.firestore();
 const app = express();
 app.use(cors({ origin: true }));
 //============================== MARKETS ==============================\\
+app.get('/search', (request, response) => {
+    db.collection('market').where('isActive', '==', true).get()
+        .then(snapshot => {
+        const dataFilter = snapshot.docs.filter(doc => {
+            const data = doc.data();
+            if (data.name.toUpperCase().includes(request.query.nameSearch.toUpperCase()) ||
+                data.description.toUpperCase().includes(request.query.nameSearch.toUpperCase())) {
+                return true;
+            }
+            return false;
+        });
+        console.log("dataFilter", dataFilter);
+        const arrayJson = dataFilter.map((doc) => {
+            const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+            return marketRs;
+        });
+        response.status(200).send(arrayJson);
+    })
+        .catch(error => {
+        response.status(500).send({ message: error });
+    });
+});
 app.get('/', (request, response) => {
     if (!request.query.category) {
         response.status(400).send({ message: 'category is required' });
@@ -23,6 +45,19 @@ app.get('/', (request, response) => {
         marketRef = marketRef.where('category.item.id', '==', request.query.item);
     }
     marketRef.get()
+        .then(snapshot => {
+        const arrayJson = snapshot.docs.map((doc) => {
+            const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+            return marketRs;
+        });
+        response.status(200).send(arrayJson);
+    })
+        .catch(error => {
+        response.status(500).send({ message: error });
+    });
+});
+app.get('/search', (request, response) => {
+    db.collection('market').where('isActive', '==', true).get()
         .then(snapshot => {
         const arrayJson = snapshot.docs.map((doc) => {
             const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
@@ -213,8 +248,8 @@ const parseToEntity = ((request, category, type) => {
 const parseToRs = ((doc, latitude, longitude) => {
     const data = doc.data();
     const marketRs = new MarketRs_1.MarketRs();
-    marketRs.userId = doc.userId;
     marketRs.id = doc.id;
+    marketRs.userId = data.userId;
     marketRs.name = data.name;
     marketRs.description = data.description;
     const categoryRs = new CategoryRs_1.default();

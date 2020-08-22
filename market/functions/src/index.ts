@@ -14,6 +14,30 @@ const app = express();
 app.use(cors({ origin: true }));
 
 //============================== MARKETS ==============================\\
+app.get('/search', (request: any, response: any) => {
+    db.collection('market').where('isActive', '==', true).get()
+        .then(snapshot => {
+            const dataFilter = snapshot.docs.filter(doc => {
+                const data = doc.data();
+                if (data.name.toUpperCase().includes(request.query.nameSearch.toUpperCase()) ||
+                    data.description.toUpperCase().includes(request.query.nameSearch.toUpperCase())) {
+                    return true;
+                }
+                return false;
+            })
+            console.log("dataFilter", dataFilter);
+            const arrayJson = dataFilter.map((doc) => {
+                const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+                return marketRs;
+            })
+
+            response.status(200).send(arrayJson);
+        })
+        .catch(error => {
+            response.status(500).send({ message: error });
+        });
+});
+
 app.get('/', (request: any, response: any) => {
     if (!request.query.category) {
         response.status(400).send({ message: 'category is required' });
@@ -25,6 +49,20 @@ app.get('/', (request: any, response: any) => {
     }
 
     marketRef.get()
+        .then(snapshot => {
+            const arrayJson = snapshot.docs.map((doc) => {
+                const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
+                return marketRs;
+            })
+            response.status(200).send(arrayJson);
+        })
+        .catch(error => {
+            response.status(500).send({ message: error });
+        });
+});
+
+app.get('/search', (request: any, response: any) => {
+    db.collection('market').where('isActive', '==', true).get()
         .then(snapshot => {
             const arrayJson = snapshot.docs.map((doc) => {
                 const marketRs = parseToRs(doc, request.query.latitude, request.query.longitude);
